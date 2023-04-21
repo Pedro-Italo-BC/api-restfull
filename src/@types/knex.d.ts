@@ -9,7 +9,8 @@ declare module 'knex/types/tables' {
       name: string
       created_at: string
       updated_at: string
-      date_and_hour: string
+      date: string
+      hour: string
       in_diet: 'diet' | 'notDiet'
       session_id?: string
     }

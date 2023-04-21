@@ -41,20 +41,66 @@ export async function mealsRoutes(app: FastifyInstance) {
     },
   )
 
+  app.get(
+    '/metrics',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request, reply) => {
+      const { sessionId } = request.cookies
+
+      const totalMeals = await knex('meals')
+        .where('session_id', sessionId)
+        .count({ total: 'id' })
+        .select()
+
+      const totalDietMeals = await knex('meals')
+        .where({
+          session_id: sessionId,
+          in_diet: 'diet',
+        })
+        .count({ total: 'id' })
+        .select()
+
+      const totalNotDietMeals = await knex('meals')
+        .where({
+          session_id: sessionId,
+          in_diet: 'notDiet',
+        })
+        .count({ total: 'id' })
+        .select()
+
+      const bestDaySequence = await knex('meals')
+        .where({ session_id: sessionId, in_diet: 'diet' })
+        .groupBy('date')
+        .count({ inDietAmount: 'in_diet' })
+        .orderBy('inDietAmount', 'desc')
+        .select('date')
+        .first()
+
+      return {
+        totalMeals: totalMeals[0].total,
+        totalDietMeals: totalDietMeals[0].total,
+        totalNotDietMeals: totalNotDietMeals[0].total,
+        bestDaySequence,
+      }
+    },
+  )
+
   app.post('/', async (request, reply) => {
     const createMealBodySchema = z.object({
       name: z.string(),
       description: z.string().default(''),
       inDiet: z.enum(['diet', 'notDiet']),
-      dateAndHour: z
-        .string()
-        .regex(/(^[0-9]{4}[-][0-9]{2}[-][0-9]{2}[ ][0-9]{2}[:][0-9]{2}$)/),
+      date: z.string().regex(/(^[0-9]{4}[-][0-9]{2}[-][0-9]{2}$)/),
+      hour: z.string().regex(/(^[0-9]{2}[:][0-9]{2}$)/),
     })
 
-    const { dateAndHour, inDiet, name, description } =
+    const { date, hour, inDiet, name, description } =
       createMealBodySchema.parse(request.body)
 
-    const dataAndHour = dayjs(dateAndHour).format('YYYY-MM-DD HH:mm:ss')
+    const correctDate = dayjs(date).format('YYYY-MM-DD')
+    const correctHour = dayjs(`${date} ${hour}`).format('HH:mm')
 
     let sessionId = request.cookies.sessionId
 
@@ -69,7 +115,8 @@ export async function mealsRoutes(app: FastifyInstance) {
 
     await knex('meals').insert({
       name,
-      date_and_hour: dataAndHour,
+      date: correctDate,
+      hour: correctHour,
       description,
       in_diet: inDiet,
       session_id: sessionId,
@@ -114,15 +161,22 @@ export async function mealsRoutes(app: FastifyInstance) {
         name: z.string().optional(),
         description: z.string().default('').optional(),
         inDiet: z.enum(['diet', 'notDiet']).optional(),
-        dateAndHour: z
+        date: z
           .string()
-          .regex(/(^[0-9]{4}[-][0-9]{2}[-][0-9]{2}[ ][0-9]{2}[:][0-9]{2}$)/)
+          .regex(/(^[0-9]{4}[-][0-9]{2}[-][0-9]{2}$)/)
+          .optional(),
+        hour: z
+          .string()
+          .regex(/(^[0-9]{2}[:][0-9]{2}$)/)
           .optional(),
       })
 
       const { id } = updateMealParamsSchema.parse(request.params)
-      const { dateAndHour, description, inDiet, name } =
+      const { date, hour, description, inDiet, name } =
         editMealBodySchema.parse(request.body)
+
+      const correctDate = dayjs(date).format('YYYY-MM-DD')
+      const correctHour = dayjs(`${date} ${hour}`).format('HH:mm')
 
       const { sessionId } = request.cookies
 
@@ -136,7 +190,8 @@ export async function mealsRoutes(app: FastifyInstance) {
         .update({
           in_diet: inDiet,
           name,
-          date_and_hour: dateAndHour,
+          date: correctDate,
+          hour: correctHour,
           description,
           updated_at: updatedAt,
         })
