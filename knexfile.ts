@@ -1,3 +1,3 @@
-import { config } from 'process'
+import { config } from './src/database'
 
 export default config

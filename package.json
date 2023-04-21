@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src --ext .ts --fix",
     "dev": "tsx watch src/server.ts",
@@ -13,9 +13,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-
   "dependencies": {
     "@fastify/cookie": "^8.3.0",
+    "dayjs": "^1.11.7",
     "dotenv": "^16.0.3",
     "fastify": "^4.15.0",
     "knex": "^2.4.2",
