@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "lint": "eslint src --ext .ts --fix",
     "dev": "tsx watch src/server.ts",
     "knex": "node --loader tsx ./node_modules/knex/bin/cli.js",
